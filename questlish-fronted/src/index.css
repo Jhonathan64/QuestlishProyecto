@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@theme {
+  --color-questlish-bg: #0d0d1a;
+  --color-questlish-card: #16162a;
+  --color-questlish-panel: #1f1f3a;
+  --color-questlish-primary: #7c3aed;
+  --color-questlish-primary-hover: #6d28d9;
+  --color-questlish-success: #22c55e;
+  --color-questlish-danger: #ef4444;
+  --color-questlish-text: #f3f4f6;
+  --color-questlish-text-muted: #9ca3af;
+}
+
+body {
+  background-color: #0d0d1a;
+  color: #f3f4f6;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+html[data-questlish-high-contrast="true"] body {
+  background-color: #000;
+  color: #fff;
+  color-scheme: dark;
+}
+
+html[data-questlish-high-contrast="true"] #root {
+  background-color: #000;
+  color: #fff;
+}
+
+html[data-questlish-high-contrast="true"] button,
+html[data-questlish-high-contrast="true"] input,
+html[data-questlish-high-contrast="true"] textarea,
+html[data-questlish-high-contrast="true"] select {
+  color-scheme: dark;
+}

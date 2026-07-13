@@ -1,0 +1,21 @@
+
+services:
+  backend:
+    build:
+      context: ./questlish-backend
+      dockerfile: Dockerfile
+    container_name: questlish-backend
+    ports:
+      - "8000:8000"
+    restart: always
+
+  frontend:
+    build:
+      context: ./questlish-fronted
+      dockerfile: Dockerfile
+    container_name: questlish-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: always
