@@ -5,6 +5,7 @@ from typing import List
 from app.database import get_db
 from app.models import MiniGame, UserMiniGameProgress, User
 from app.schemas import MiniGameResponse, VerifyAnswerRequest, VerifyAnswerResponse
+from app.auth import get_current_user
 
 router = APIRouter()
 
@@ -36,12 +37,12 @@ def get_minigames(db: Session = Depends(get_db)):
     return games
 
 @router.post("/verify", response_model=VerifyAnswerResponse)
-def verify_and_save_progress(data: VerifyAnswerRequest, db: Session = Depends(get_db)):
+def verify_and_save_progress(data: VerifyAnswerRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     game_id = getattr(data, "minigameId", "grammar-ninja") or "grammar-ninja"
     game = db.query(MiniGame).filter(MiniGame.id == game_id).first()
 
     if not game:
-        raise HTTPException(status_code=404, detail="Minijuego no encontrado")
+        raise HTTPException(status_code=404, detail="Mini game not found")
 
     is_correct = (data.selectedIndex == game.correct_token_index)
     xp_gained = 50 if is_correct else 0
@@ -49,10 +50,9 @@ def verify_and_save_progress(data: VerifyAnswerRequest, db: Session = Depends(ge
     # Buscar la explicación según la opción seleccionada
     tokens = sorted(game.tokens, key=lambda x: x.token_order)
     selected_token = tokens[data.selectedIndex] if data.selectedIndex < len(tokens) else None
-    explanation = selected_token.explanation if selected_token else "Respuesta procesada."
+    explanation = selected_token.explanation if selected_token else "Answer processed."
 
-    user_id = getattr(data, "userId", 1) or 1
-    user = db.query(User).filter(User.id == user_id).first()
+    user = current_user
     total_xp = 0
 
     if user:

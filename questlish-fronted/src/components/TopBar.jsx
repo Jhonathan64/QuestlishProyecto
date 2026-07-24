@@ -1,52 +1,21 @@
-import { Star } from 'lucide-react';
+import { Flame, LogOut, Star } from 'lucide-react';
 import { useQuestlishStore } from '../store/useQuestlishStore.js';
 
 export default function TopBar() {
-  const { highContrastMode } = useQuestlishStore();
-
+  const { user, highContrastMode, logout } = useQuestlishStore();
+  const initials = user.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+  const level = user.currentLevel || 'B1 - INTERMEDIATE';
   return (
-    <header className={`w-full px-6 py-4 flex items-center justify-between border-b ${highContrastMode ? 'bg-black border-white/20' : 'bg-[#110e1b] border-violet-950/40'}`}>
-      {/* Level Info */}
-      <div className="flex items-center gap-4">
-        <div className="w-8 h-8 rounded-full bg-violet-900/50 border border-violet-500/30 flex items-center justify-center text-xs font-bold text-violet-300">
-          B1
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className={`text-xs font-bold tracking-wider ${highContrastMode ? 'text-zinc-200' : 'text-gray-300'}`}>
-            LEVEL B1 — INTERMEDIATE
-          </span>
-          <div className={`w-36 h-1.5 rounded-full overflow-hidden flex items-center ${highContrastMode ? 'bg-zinc-800' : 'bg-gray-800'}`}>
-            <div className={`h-full w-[40%] rounded-full ${highContrastMode ? 'bg-cyan-300' : 'bg-violet-500'}`}></div>
-          </div>
-        </div>
-        <span className={`text-xs font-semibold ml-1 ${highContrastMode ? 'text-zinc-300' : 'text-gray-400'}`}>40%</span>
+    <header className={`w-full px-4 sm:px-6 py-3 flex items-center justify-between gap-3 border-b ${highContrastMode ? 'bg-black border-white/20' : 'bg-[#110e1b] border-violet-950/40'}`}>
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-9 h-9 shrink-0 rounded-full bg-violet-900/50 border border-violet-400 flex items-center justify-center text-xs font-bold text-violet-200">{level.slice(0, 2)}</div>
+        <div className="hidden sm:block"><span className="text-xs font-bold tracking-wide text-gray-200">LEVEL {level}</span><div className="flex items-center gap-2 mt-1"><div className="w-32 h-2 rounded-full bg-gray-800 overflow-hidden" role="progressbar" aria-label="Overall progress" aria-valuenow={user.progress} aria-valuemin="0" aria-valuemax="100"><div className="h-full bg-violet-500 rounded-full" style={{ width: `${user.progress}%` }} /></div><span className="text-xs text-gray-300">{user.progress}%</span></div></div>
       </div>
-
-      {/* Stats & User Avatar */}
-      <div className="flex items-center gap-6">
-        {/* Rating Stars */}
-        <div className="flex items-center gap-1 text-amber-400">
-          <Star className="w-4 h-4 fill-current" />
-          <Star className="w-4 h-4 fill-current" />
-          <Star className="w-4 h-4 fill-current" />
-          <Star className="w-4 h-4 fill-current" />
-          <Star className="w-4 h-4 text-gray-600" />
-        </div>
-
-        {/* XP Badge */}
-        <div className="flex items-center gap-1.5 bg-violet-950/60 border border-violet-800/40 px-3 py-1.5 rounded-full text-violet-300 font-bold text-xs">
-          <Star className="w-3.5 h-3.5 fill-current text-violet-400" />
-          <span>340 XP</span>
-        </div>
-
-        {/* User Avatar Button */}
-        <div
-          className="w-9 h-9 rounded-full bg-purple-600 transition-colors flex items-center justify-center font-bold text-white shadow-md text-xs cursor-default"
-          title="Questlish user"
-          aria-label="Questlish user avatar"
-        >
-          AR
-        </div>
+      <div className="flex items-center gap-2 sm:gap-4">
+        <div className="hidden md:flex items-center gap-1 text-orange-300 text-xs font-bold"><Flame size={17} aria-hidden="true" />{user.streakDays} days</div>
+        <div className="flex items-center gap-1.5 bg-violet-950/70 border border-violet-700/50 px-3 py-2 rounded-full text-violet-200 font-bold text-xs"><Star size={15} className="fill-current" aria-hidden="true" />{user.totalXp} XP</div>
+        <div className="w-9 h-9 rounded-full bg-purple-600 flex items-center justify-center font-bold text-white text-xs" title={user.name} aria-label={`${user.name}'s avatar`}>{initials}</div>
+        <button onClick={logout} className="p-2 rounded-lg text-gray-300 hover:text-white hover:bg-violet-900/40" aria-label="Sign out" title="Sign out"><LogOut size={19} /></button>
       </div>
     </header>
   );

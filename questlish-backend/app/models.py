@@ -17,6 +17,7 @@ class User(Base):
     current_level = Column(String, default="B1")
     total_xp = Column(Integer, default=0)
     streak_days = Column(Integer, default=0)
+    global_progress = Column(Integer, default=0)
 
 # ==================== LECCIONES ====================
 class Lesson(Base):

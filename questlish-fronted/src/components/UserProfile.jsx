@@ -2,17 +2,18 @@ import { Target, Zap, BookOpen, Flame, Trophy, Flame as FireIcon, Check } from '
 import { useQuestlishStore } from '../store/useQuestlishStore.js';
 
 export default function UserProfile({ onContinueLesson }) {
-  const { highContrastMode } = useQuestlishStore();
+  const { highContrastMode, user, lessons } = useQuestlishStore();
+  const completedLessons = lessons.filter((lesson) => lesson.status === 'completed').length;
   // Datos del usuario (se pueden conectar con Zustand o Props)
   const userData = {
-    name: 'Alex Rodriguez',
+    name: user.name,
     role: 'Learner · Questlish',
-    initials: 'AR',
-    level: 'B1',
-    progressPercent: 40,
-    totalXp: 340,
-    lessonsCompleted: '2/8',
-    streakDays: 7,
+    initials: user.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase(),
+    level: user.currentLevel,
+    progressPercent: user.progress,
+    totalXp: user.totalXp,
+    lessonsCompleted: `${completedLessons}/${lessons.length}`,
+    streakDays: user.streakDays,
   };
 
   const achievements = [
@@ -21,7 +22,7 @@ export default function UserProfile({ onContinueLesson }) {
       title: 'First Lesson',
       description: 'Complete your first lesson',
       icon: Trophy,
-      completed: true,
+      completed: completedLessons >= 1,
       iconColor: 'text-amber-400',
     },
     {
@@ -29,7 +30,7 @@ export default function UserProfile({ onContinueLesson }) {
       title: 'Week Warrior',
       description: '7-day streak achieved',
       icon: FireIcon,
-      completed: true,
+      completed: user.streakDays >= 7,
       iconColor: 'text-orange-500',
     },
     {

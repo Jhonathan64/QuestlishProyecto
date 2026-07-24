@@ -42,10 +42,10 @@ const sampleQuestion = {
   ],
 };
 
-export default function LessonView({ onClose }) {
+export default function LessonView({ lesson, onClose }) {
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [status, setStatus] = useState('idle'); // 'idle' | 'correct' | 'incorrect'
-  const { decrementHeart, addXp } = useQuestlishStore();
+  const { decrementHeart, completeLesson } = useQuestlishStore();
 
   const handleSelectWord = (index) => {
     if (status === 'idle') {
@@ -58,7 +58,6 @@ export default function LessonView({ onClose }) {
 
     if (selectedIndex === sampleQuestion.correctTokenIndex) {
       setStatus('correct');
-      addXp(15);
     } else {
       setStatus('incorrect');
       decrementHeart();
@@ -70,7 +69,8 @@ export default function LessonView({ onClose }) {
     setSelectedIndex(null);
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
+    if (status === 'correct') await completeLesson(lesson.id);
     setStatus('idle');
     setSelectedIndex(null);
     onClose();

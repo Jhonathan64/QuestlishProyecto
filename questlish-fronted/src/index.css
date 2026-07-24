@@ -35,3 +35,12 @@ html[data-questlish-high-contrast="true"] textarea,
 html[data-questlish-high-contrast="true"] select {
   color-scheme: dark;
 }
+
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 3px solid #c4b5fd;
+  outline-offset: 3px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}

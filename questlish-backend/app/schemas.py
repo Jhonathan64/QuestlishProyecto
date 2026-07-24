@@ -9,10 +9,26 @@ class UserResponse(BaseModel):
     current_level: str = Field(..., serialization_alias="currentLevel")
     total_xp: int = Field(..., serialization_alias="totalXp")
     streak_days: int = Field(..., serialization_alias="streakDays")
+    global_progress: int = Field(0, serialization_alias="progress")
+    lessons_state: dict[str, str] = Field(default_factory=dict, serialization_alias="lessonsState")
 
     class Config:
         from_attributes = True
         populate_by_name = True
+
+class RegisterRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=80)
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+
+class LoginRequest(BaseModel):
+    identifier: str = Field(min_length=2, max_length=120)
+    password: str = Field(min_length=1, max_length=128)
+
+class AuthResponse(BaseModel):
+    accessToken: str
+    tokenType: str = "bearer"
+    user: UserResponse
 
 # ==================== LESSON SCHEMAS ====================
 class LessonResponse(BaseModel):

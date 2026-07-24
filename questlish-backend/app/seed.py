@@ -1,5 +1,6 @@
 from app.database import SessionLocal, engine, Base
 from app.models import MiniGame, MiniGameToken, User
+from app.auth import hash_password
 
 def seed_database():
     Base.metadata.create_all(bind=engine)
@@ -12,7 +13,7 @@ def seed_database():
             id=1,
             name="Jonatan Pulig",
             email="demo@questlish.local",
-            hashed_password="demo_password_hash",
+            hashed_password=hash_password("Questlish123"),
             current_level="B1",
             total_xp=0,
             streak_days=1

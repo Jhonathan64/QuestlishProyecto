@@ -7,6 +7,11 @@ services:
     container_name: questlish-backend
     ports:
       - "8000:8000"
+    environment:
+      DATABASE_URL: sqlite:////app/data/questlish.db
+      QUESTLISH_SECRET_KEY: ${QUESTLISH_SECRET_KEY:-questlish-local-development-key-change-in-production}
+    volumes:
+      - questlish_data:/app/data
     restart: always
 
   frontend:
@@ -19,3 +24,6 @@ services:
     depends_on:
       - backend
     restart: always
+
+volumes:
+  questlish_data:
