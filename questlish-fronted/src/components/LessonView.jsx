@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X, Volume2, MessageSquare, Star, Check, RotateCcw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, Volume2, Star, Check, RotateCcw } from 'lucide-react';
 import { useQuestlishStore } from '../store/useQuestlishStore.js';
 
 // Pregunta con retroalimentación contextual específica por cada palabra
@@ -7,6 +7,7 @@ const sampleQuestion = {
   id: 1,
   instruction: 'INSTRUCTION',
   prompt: 'Select the Noun in the following sentence:',
+  audioText: 'Select the noun in the following sentence. The algorithm evaluates complex data.',
   correctTokenIndex: 1, // 'algorithm'
   sentenceTokens: [
     {
@@ -42,10 +43,99 @@ const sampleQuestion = {
   ],
 };
 
+const lessonQuestions = {
+  'Grammar Essentials': sampleQuestion,
+  'Letters & Sounds': {
+    instruction: 'PRONUNCIATION',
+    prompt: 'Select the word that begins with the /th/ sound in “think”:',
+    audioText: 'Select the word that begins with the th sound in think. Ship. Think. Cat. Zoo.',
+    correctTokenIndex: 1,
+    sentenceTokens: [
+      { word: 'ship', explanation: "'Ship' begins with the /sh/ sound, not the /th/ sound." },
+      { word: 'think', explanation: "'Think' begins with the unvoiced /th/ sound, made by placing the tongue lightly between the teeth." },
+      { word: 'cat', explanation: "'Cat' begins with the /k/ sound." },
+      { word: 'zoo', explanation: "'Zoo' begins with the voiced /z/ sound." },
+    ],
+  },
+  'Daily Conversations': {
+    instruction: 'CONVERSATION',
+    prompt: 'Choose the most natural response to: “How are you doing today?”',
+    audioText: 'How are you doing today? Choose the most natural response.',
+    correctTokenIndex: 0,
+    sentenceTokens: [
+      { word: "I'm doing well, thanks.", explanation: 'This is a polite and natural response to a question about how you are.' },
+      { word: 'At the library.', explanation: 'This answers a question about location, not how someone is doing.' },
+      { word: 'Yesterday morning.', explanation: 'This answers a question about time.' },
+      { word: 'Because it is sunny.', explanation: 'This gives a reason but does not answer the greeting.' },
+    ],
+  },
+  'Workplace English': {
+    instruction: 'WORKPLACE ENGLISH',
+    prompt: 'Complete the sentence: “Please ___ the report by Friday.”',
+    audioText: 'Please submit the report by Friday. Choose the correct word.',
+    correctTokenIndex: 2,
+    sentenceTokens: [
+      { word: 'submits', explanation: "After 'please,' use the base form of the verb, not 'submits'." },
+      { word: 'submitted', explanation: 'The past form does not fit this polite instruction.' },
+      { word: 'submit', explanation: "'Submit' is the correct base verb for this polite workplace instruction." },
+      { word: 'submitting', explanation: "The -ing form cannot follow 'please' directly in this sentence." },
+    ],
+  },
+  'Academic Writing': {
+    instruction: 'ACADEMIC WRITING',
+    prompt: 'Choose the best connector: “The results were significant; ___, further research is needed.”',
+    audioText: 'The results were significant. However, further research is needed. Choose the best connector.',
+    correctTokenIndex: 1,
+    sentenceTokens: [
+      { word: 'therefore', explanation: "'Therefore' expresses a result, but the second idea contrasts with the first." },
+      { word: 'however', explanation: "'However' introduces the contrast between significant results and the need for more research." },
+      { word: 'for example', explanation: "'For example' introduces an illustration, not a contrasting idea." },
+      { word: 'similarly', explanation: "'Similarly' connects ideas that agree; these two ideas contrast." },
+    ],
+  },
+};
+
 export default function LessonView({ lesson, onClose }) {
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [status, setStatus] = useState('idle'); // 'idle' | 'correct' | 'incorrect'
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [audioMessage, setAudioMessage] = useState('');
   const { decrementHeart, completeLesson } = useQuestlishStore();
+  const question = lessonQuestions[lesson.title] || sampleQuestion;
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const handlePlayAudio = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setAudioMessage('Audio playback is not supported by this browser.');
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(question.audioText);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      setAudioMessage('Playing the lesson audio.');
+    };
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setAudioMessage('Audio finished.');
+    };
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      setAudioMessage('The audio could not be played. Please try again.');
+    };
+    window.speechSynthesis.speak(utterance);
+  };
 
   const handleSelectWord = (index) => {
     if (status === 'idle') {
@@ -56,7 +146,7 @@ export default function LessonView({ lesson, onClose }) {
   const handleCheckAnswer = () => {
     if (selectedIndex === null) return;
 
-    if (selectedIndex === sampleQuestion.correctTokenIndex) {
+    if (selectedIndex === question.correctTokenIndex) {
       setStatus('correct');
     } else {
       setStatus('incorrect');
@@ -77,7 +167,7 @@ export default function LessonView({ lesson, onClose }) {
   };
 
   // Obtener la palabra actual seleccionada
-  const selectedToken = selectedIndex !== null ? sampleQuestion.sentenceTokens[selectedIndex] : null;
+  const selectedToken = selectedIndex !== null ? question.sentenceTokens[selectedIndex] : null;
 
   return (
     <div className="flex-1 flex flex-col bg-[#0b0813] min-h-full">
@@ -114,31 +204,34 @@ export default function LessonView({ lesson, onClose }) {
         <div className="w-full bg-[#140f24] border border-violet-900/30 rounded-3xl p-8 md:p-10 shadow-2xl relative flex flex-col items-center">
           <div className="w-full flex items-center justify-between mb-4">
             <span className="text-[11px] font-extrabold tracking-widest text-violet-400 uppercase">
-              {sampleQuestion.instruction}
+              {question.instruction}
             </span>
-            <div className="flex items-center gap-2">
-              <button 
-                aria-label="Listen audio" 
-                className="w-10 h-10 rounded-xl bg-violet-950/60 border border-violet-800/30 flex items-center justify-center text-violet-400 hover:bg-violet-900/50 transition-all"
+            <div>
+              <button
+                type="button"
+                onClick={handlePlayAudio}
+                aria-label={isSpeaking ? 'Replay lesson audio' : 'Play lesson audio'}
+                title={isSpeaking ? 'Replay lesson audio' : 'Play lesson audio'}
+                className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${
+                  isSpeaking
+                    ? 'bg-violet-600 border-violet-400 text-white animate-pulse'
+                    : 'bg-violet-950/60 border-violet-800/30 text-violet-400 hover:bg-violet-900/50'
+                }`}
               >
                 <Volume2 className="w-5 h-5" />
-              </button>
-              <button 
-                aria-label="Discussion" 
-                className="w-10 h-10 rounded-xl bg-violet-950/60 border border-violet-800/30 flex items-center justify-center text-violet-400 hover:bg-violet-900/50 transition-all"
-              >
-                <MessageSquare className="w-5 h-5" />
               </button>
             </div>
           </div>
 
+          <p className="sr-only" aria-live="polite">{audioMessage}</p>
+
           <h2 className="w-full text-xl md:text-2xl font-bold text-white mb-8 leading-snug text-left">
-            {sampleQuestion.prompt}
+            {question.prompt}
           </h2>
 
           {/* Fichas de Palabras / Tokens */}
           <div className="flex flex-wrap items-center justify-center gap-3 mb-8 w-full">
-            {sampleQuestion.sentenceTokens.map((token, idx) => {
+            {question.sentenceTokens.map((token, idx) => {
               const isSelected = selectedIndex === idx;
               const isCorrectWord = status === 'correct' && isSelected;
               const isIncorrectWord = status === 'incorrect' && isSelected;
