@@ -14,9 +14,12 @@ import {
   Star,
   Check,
   RotateCcw,
+  Clapperboard,
+  Captions,
 } from 'lucide-react';
 import { useQuestlishStore } from '../store/useQuestlishStore.js';
 import { fetchMiniGames, verifyAnswer } from '../services/minigameService.js';
+import VideoConversations from './VideoConversations.jsx';
 
 const CATEGORY_ORDER = ['Grammar', 'Vocabulary', 'Pronunciation'];
 
@@ -546,6 +549,7 @@ export default function MiniGames() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeGame, setActiveGame] = useState(null);
+  const [showVideoPractice, setShowVideoPractice] = useState(false);
   const [backendGames, setBackendGames] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -755,6 +759,25 @@ export default function MiniGames() {
     setLiveMessage('Try the activity again.');
   };
 
+  useEffect(() => {
+    if (!activeGame && !showVideoPractice) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (showVideoPractice) {
+        setShowVideoPractice(false);
+        setLiveMessage('Video Conversations closed. Returned to the mini games catalog.');
+      } else {
+        handleCloseGame();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape, true);
+    return () => document.removeEventListener('keydown', handleEscape, true);
+  }, [activeGame, showVideoPractice]);
+
   if (loading) {
     return (
       <main className={joinClasses('flex-1 min-h-screen', theme.page)} aria-busy="true" aria-label="Mini games loading state">
@@ -814,6 +837,10 @@ export default function MiniGames() {
     );
   }
 
+  if (showVideoPractice) {
+    return <VideoConversations onClose={() => setShowVideoPractice(false)} />;
+  }
+
   if (activeGame) {
     const exercise = currentGame.exercise;
     const selectedToken = selectedIndex !== null ? exercise.tokens[selectedIndex] : null;
@@ -828,6 +855,7 @@ export default function MiniGames() {
             <button
               onClick={handleCloseGame}
               aria-label="Close activity"
+              aria-keyshortcuts="Escape"
               className={joinClasses('transition-colors p-1', theme.accent, theme.outline)}
             >
               <X className="w-5 h-5" />
@@ -1013,9 +1041,46 @@ export default function MiniGames() {
           </button>
         </div>
 
+        <section
+          className="overflow-hidden rounded-3xl border border-violet-500/40 bg-gradient-to-br from-[#21133d] via-[#18102d] to-[#10101d] shadow-xl shadow-violet-950/30"
+          aria-labelledby="video-conversations-heading"
+        >
+          <div className="grid gap-6 p-6 md:grid-cols-[1fr_auto] md:items-center md:p-8">
+            <div>
+              <div className="flex items-center gap-3">
+                <span className="flex w-11 h-11 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-lg shadow-violet-600/30" aria-hidden="true">
+                  <Clapperboard className="w-5 h-5" />
+                </span>
+                <div>
+                  <p className="text-xs font-bold tracking-widest uppercase text-violet-300">New listening game</p>
+                  <h2 id="video-conversations-heading" className="text-xl font-black text-white">Video Conversations</h2>
+                </div>
+              </div>
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-gray-300">
+                Practice real-life B1 dialogue with an interactive, timestamped transcript. Select any line to hear it in context.
+              </p>
+              <div className="mt-3 flex items-center gap-2 text-xs text-violet-200">
+                <Captions className="w-4 h-4" aria-hidden="true" />
+                Synchronized transcript · Keyboard accessible
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowVideoPractice(true)}
+              aria-label="Start Video Conversations listening and transcript practice"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-violet-600 px-6 py-3 font-bold text-white shadow-lg shadow-violet-600/30 transition-colors hover:bg-violet-500"
+            >
+              <Play className="w-5 h-5 fill-current" aria-hidden="true" />
+              Start practice
+            </button>
+          </div>
+        </section>
+
         <div className="relative">
+          <label htmlFor="mini-games-search" className="sr-only">Search mini games</label>
           <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
           <input
+            id="mini-games-search"
             type="text"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}

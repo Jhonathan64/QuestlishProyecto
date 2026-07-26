@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { X, Volume2, Star, Check, RotateCcw } from 'lucide-react';
 import { useQuestlishStore } from '../store/useQuestlishStore.js';
+import ExerciseContextImage from './ExerciseContextImage.jsx';
 
 // Pregunta con retroalimentación contextual específica por cada palabra
 const sampleQuestion = {
@@ -9,6 +10,12 @@ const sampleQuestion = {
   prompt: 'Select the Noun in the following sentence:',
   audioText: 'Select the noun in the following sentence. The algorithm evaluates complex data.',
   correctTokenIndex: 1, // 'algorithm'
+  image: {
+    src: '/lesson-images/grammar-algorithm.png',
+    alt: 'A learner observes a computer processing charts and data points through a sequence of connected visual steps.',
+    ariaLabel: 'Visual context for a sentence about an algorithm evaluating complex data',
+    caption: 'A computer processes complex data step by step.',
+  },
   sentenceTokens: [
     {
       word: 'The',
@@ -50,6 +57,12 @@ const lessonQuestions = {
     prompt: 'Select the word that begins with the /th/ sound in “think”:',
     audioText: 'Select the word that begins with the th sound in think. Ship. Think. Cat. Zoo.',
     correctTokenIndex: 1,
+    image: {
+      src: '/lesson-images/pronunciation-th.png',
+      alt: 'An English learner practices pronunciation in front of a mirror while a teacher demonstrates the mouth position beside him.',
+      ariaLabel: 'Visual context for practicing the initial th sound',
+      caption: 'A learner observes and practices a new mouth position.',
+    },
     sentenceTokens: [
       { word: 'ship', explanation: "'Ship' begins with the /sh/ sound, not the /th/ sound." },
       { word: 'think', explanation: "'Think' begins with the unvoiced /th/ sound, made by placing the tongue lightly between the teeth." },
@@ -62,6 +75,12 @@ const lessonQuestions = {
     prompt: 'Choose the most natural response to: “How are you doing today?”',
     audioText: 'How are you doing today? Choose the most natural response.',
     correctTokenIndex: 0,
+    image: {
+      src: '/lesson-images/daily-conversation.png',
+      alt: 'Two friends having a relaxed conversation at a cafe. One friend asks a question with an open hand, while the other smiles and responds with a positive gesture.',
+      ariaLabel: 'Visual context for a friendly everyday greeting',
+      caption: 'A friendly conversation in an everyday setting.',
+    },
     sentenceTokens: [
       { word: "I'm doing well, thanks.", explanation: 'This is a polite and natural response to a question about how you are.' },
       { word: 'At the library.', explanation: 'This answers a question about location, not how someone is doing.' },
@@ -74,6 +93,12 @@ const lessonQuestions = {
     prompt: 'Complete the sentence: “Please ___ the report by Friday.”',
     audioText: 'Please submit the report by Friday. Choose the correct word.',
     correctTokenIndex: 2,
+    image: {
+      src: '/lesson-images/workplace-schedule.png',
+      alt: 'Two coworkers discussing a weekly schedule displayed on a tablet. One coworker points to a shift while the other listens attentively.',
+      ariaLabel: 'Visual context for a workplace scheduling conversation',
+      caption: 'Coworkers reviewing next week’s schedule.',
+    },
     sentenceTokens: [
       { word: 'submits', explanation: "After 'please,' use the base form of the verb, not 'submits'." },
       { word: 'submitted', explanation: 'The past form does not fit this polite instruction.' },
@@ -86,6 +111,12 @@ const lessonQuestions = {
     prompt: 'Choose the best connector: “The results were significant; ___, further research is needed.”',
     audioText: 'The results were significant. However, further research is needed. Choose the best connector.',
     correctTokenIndex: 1,
+    image: {
+      src: '/lesson-images/academic-research.png',
+      alt: 'A researcher studies several promising charts on a monitor while additional samples and notes remain ready for further investigation.',
+      ariaLabel: 'Visual context contrasting significant results with unfinished research',
+      caption: 'Promising results are reviewed while more research remains.',
+    },
     sentenceTokens: [
       { word: 'therefore', explanation: "'Therefore' expresses a result, but the second idea contrasts with the first." },
       { word: 'however', explanation: "'However' introduces the contrast between significant results and the need for more research." },
@@ -110,6 +141,45 @@ export default function LessonView({ lesson, onClose }) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    const handleKeyboard = (event) => {
+      if (event.target?.matches?.('input, textarea, select, [contenteditable="true"]')) return;
+      const number = Number(event.key);
+      const direction = ['ArrowRight', 'ArrowDown'].includes(event.key)
+        ? 1
+        : ['ArrowLeft', 'ArrowUp'].includes(event.key)
+          ? -1
+          : 0;
+      if (status === 'idle' && direction) {
+        event.preventDefault();
+        const currentIndex = selectedIndex ?? (direction > 0 ? -1 : 0);
+        const nextIndex = (currentIndex + direction + question.sentenceTokens.length) % question.sentenceTokens.length;
+        handleSelectWord(nextIndex);
+        setAudioMessage(`Choice ${nextIndex + 1}: ${question.sentenceTokens[nextIndex].word}, selected.`);
+      } else if (status === 'idle' && number >= 1 && number <= question.sentenceTokens.length) {
+        event.preventDefault();
+        handleSelectWord(number - 1);
+        setAudioMessage(`Choice ${number}: ${question.sentenceTokens[number - 1].word}, selected.`);
+      } else if (event.key.toLowerCase() === 'p') {
+        event.preventDefault();
+        handlePlayAudio();
+      } else if (event.key.toLowerCase() === 'r' && status === 'incorrect') {
+        event.preventDefault();
+        handleRetry();
+      } else if (event.key === 'Enter') {
+        if (status === 'idle' && selectedIndex !== null) {
+          event.preventDefault();
+          handleCheckAnswer();
+        } else if (status === 'correct') {
+          event.preventDefault();
+          handleContinue();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyboard);
+    return () => window.removeEventListener('keydown', handleKeyboard);
+  });
 
   const handlePlayAudio = () => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
@@ -176,27 +246,38 @@ export default function LessonView({ lesson, onClose }) {
         <button
           onClick={onClose}
           aria-label="Close lesson"
+          aria-keyshortcuts="Escape"
           className="text-gray-400 hover:text-white transition-colors p-1"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex-1 bg-[#1a142e] h-2.5 rounded-full overflow-hidden">
+        <div
+          role="progressbar"
+          tabIndex="0"
+          aria-label="Lesson progress"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="65"
+          aria-valuetext="65 percent of this lesson completed"
+          className="flex-1 bg-[#1a142e] h-2.5 rounded-full overflow-hidden focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-400 focus-visible:ring-offset-4 focus-visible:ring-offset-[#110e1b]"
+        >
           <div className="bg-violet-600 h-full w-[65%] rounded-full shadow-lg shadow-violet-600/50"></div>
         </div>
+        <span className="sr-only">65% complete</span>
       </div>
 
       {/* Contenido principal del ejercicio */}
       <div className="flex-1 max-w-4xl w-full mx-auto p-6 md:p-8 flex flex-col justify-center items-center">
         {/* Practice Points */}
-        <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center gap-2 mb-6" aria-label="3 of 5 practice points">
           <span className="text-xs font-medium text-gray-400">Practice Points</span>
           <div className="flex items-center gap-1 text-amber-400">
-            <Star className="w-4 h-4 fill-current" />
-            <Star className="w-4 h-4 fill-current" />
-            <Star className="w-4 h-4 fill-current" />
-            <Star className="w-4 h-4 text-violet-950/80 fill-violet-950/60" />
-            <Star className="w-4 h-4 text-violet-950/80 fill-violet-950/60" />
+            <Star className="w-4 h-4 fill-current" aria-hidden="true" />
+            <Star className="w-4 h-4 fill-current" aria-hidden="true" />
+            <Star className="w-4 h-4 fill-current" aria-hidden="true" />
+            <Star className="w-4 h-4 text-violet-950/80 fill-violet-950/60" aria-hidden="true" />
+            <Star className="w-4 h-4 text-violet-950/80 fill-violet-950/60" aria-hidden="true" />
           </div>
         </div>
 
@@ -210,6 +291,7 @@ export default function LessonView({ lesson, onClose }) {
               <button
                 type="button"
                 onClick={handlePlayAudio}
+                aria-keyshortcuts="P"
                 aria-label={isSpeaking ? 'Replay lesson audio' : 'Play lesson audio'}
                 title={isSpeaking ? 'Replay lesson audio' : 'Play lesson audio'}
                 className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${
@@ -218,19 +300,21 @@ export default function LessonView({ lesson, onClose }) {
                     : 'bg-violet-950/60 border-violet-800/30 text-violet-400 hover:bg-violet-900/50'
                 }`}
               >
-                <Volume2 className="w-5 h-5" />
+                <Volume2 className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
           </div>
 
           <p className="sr-only" aria-live="polite">{audioMessage}</p>
 
-          <h2 className="w-full text-xl md:text-2xl font-bold text-white mb-8 leading-snug text-left">
+          <ExerciseContextImage image={question.image} describedBy="lesson-question-prompt" />
+
+          <h2 id="lesson-question-prompt" className="w-full text-xl md:text-2xl font-bold text-white mb-8 leading-snug text-left">
             {question.prompt}
           </h2>
 
           {/* Fichas de Palabras / Tokens */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mb-8 w-full">
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-8 w-full" role="group" aria-label="Answer choices. Press number keys 1 through 5, with or without Control, to choose.">
             {question.sentenceTokens.map((token, idx) => {
               const isSelected = selectedIndex === idx;
               const isCorrectWord = status === 'correct' && isSelected;
@@ -255,11 +339,14 @@ export default function LessonView({ lesson, onClose }) {
                   key={idx}
                   onClick={() => handleSelectWord(idx)}
                   disabled={status !== 'idle'}
+                  aria-pressed={isSelected}
+                  aria-keyshortcuts={`${idx + 1}`}
+                  aria-label={`Choice ${idx + 1}: ${token.word}`}
                   className={`px-6 py-3 rounded-2xl font-medium text-base transition-all border flex items-center gap-2 ${buttonStyles}`}
                 >
                   <span>{token.word}</span>
-                  {isCorrectWord && <Check className="w-4 h-4 stroke-[3]" />}
-                  {isIncorrectWord && <X className="w-4 h-4 stroke-[3]" />}
+                  {isCorrectWord && <Check className="w-4 h-4 stroke-[3]" aria-hidden="true" />}
+                  {isIncorrectWord && <X className="w-4 h-4 stroke-[3]" aria-hidden="true" />}
                 </button>
               );
             })}
@@ -270,6 +357,7 @@ export default function LessonView({ lesson, onClose }) {
             <button
               onClick={handleCheckAnswer}
               disabled={selectedIndex === null}
+              aria-keyshortcuts="Enter"
               className={`w-full max-w-md py-3.5 rounded-2xl font-bold text-sm tracking-wide transition-all shadow-md ${
                 selectedIndex !== null
                   ? 'bg-violet-600 hover:bg-violet-500 text-white shadow-violet-600/30 active:scale-98 cursor-pointer'
@@ -284,10 +372,10 @@ export default function LessonView({ lesson, onClose }) {
         {/* Diálogo de Retroalimentación Contextual Inferior */}
         <div className="w-full mt-6">
           {status === 'correct' && selectedToken && (
-            <div className="w-full bg-[#0d1e1c]/90 border border-emerald-500/50 rounded-3xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-3 duration-300">
+            <div className="w-full bg-[#0d1e1c]/90 border border-emerald-500/50 rounded-3xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-3 duration-300" role="status" aria-live="polite">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white shrink-0 mt-0.5">
-                  <Check className="w-6 h-6 stroke-[3]" />
+                  <Check className="w-6 h-6 stroke-[3]" aria-hidden="true" />
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-emerald-400 font-extrabold text-lg">Correct!</h3>
@@ -299,6 +387,7 @@ export default function LessonView({ lesson, onClose }) {
               <div className="flex justify-start pl-14">
                 <button
                   onClick={handleContinue}
+                  aria-keyshortcuts="Enter"
                   className="bg-emerald-500 hover:bg-emerald-400 text-white font-bold px-8 py-2.5 rounded-full text-sm transition-all shadow-md shadow-emerald-500/20"
                 >
                   Continue
@@ -308,10 +397,10 @@ export default function LessonView({ lesson, onClose }) {
           )}
 
           {status === 'incorrect' && selectedToken && (
-            <div className="w-full bg-[#200f18]/90 border border-rose-500/50 rounded-3xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-3 duration-300">
+            <div className="w-full bg-[#200f18]/90 border border-rose-500/50 rounded-3xl p-6 shadow-xl flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-3 duration-300" role="alert" aria-live="assertive">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-full bg-rose-500 flex items-center justify-center text-white shrink-0 mt-0.5">
-                  <X className="w-6 h-6 stroke-[3]" />
+                  <X className="w-6 h-6 stroke-[3]" aria-hidden="true" />
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-rose-500 font-extrabold text-lg">Not quite — keep trying!</h3>
@@ -323,9 +412,10 @@ export default function LessonView({ lesson, onClose }) {
               <div className="flex items-center gap-3 pl-14 pt-1">
                 <button
                   onClick={handleRetry}
+                  aria-keyshortcuts="R"
                   className="bg-transparent hover:bg-violet-950/50 text-gray-200 font-semibold px-5 py-2.5 rounded-full text-sm border border-gray-600/50 transition-all flex items-center gap-2"
                 >
-                  <RotateCcw className="w-4 h-4" />
+                  <RotateCcw className="w-4 h-4" aria-hidden="true" />
                   <span>Retry</span>
                 </button>
                 <button
